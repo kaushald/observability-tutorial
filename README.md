@@ -26,9 +26,8 @@ https://ui.honeycomb.io/teams
 
 ### Add API key to your environment
 
-(Skip this stop if you are using gitpod)
+(Skip this step if you are using gitpod)
 
-```bash
 ```shell
 # bash/zsh
 export HONEYCOMB_API_KEY=<your-api-key>
@@ -43,16 +42,15 @@ Sign up for Gitpod using your GitHub account at https://gitpod.io
 
 ## Setting up Gitpod
 
-Add the HONEYCOMB_API_KEY to https://gitpod.io/variables with scope */*
+Add the HONEYCOMB_API_KEY to https://gitpod.io/variables with scope \*/\*
 
 ## Opening the repo in Gitpod
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/kaushald/o11y-tutorial)
-
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/kaushald/observability-tutorial)
 
 ## Running the examples
 
-Navigate to the folders starting with 00* and run the bnd.sh script.
+Navigate to the folders starting with 00\* and run the bnd.sh script.
 
 ```shell
 cd 001-basic
@@ -61,4 +59,3 @@ cd 001-basic
 # To stop the services if needed
 ./stop.sh
 ```
-
