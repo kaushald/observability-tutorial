@@ -35,7 +35,6 @@ gradle-wrapper.jar
 .mtj.tmp/
 
 # Package Files #
-*.jar
 *.war
 *.nar
 *.ear
