@@ -1,8 +1,18 @@
 # O11y Tutorial
 
-## Java
+## Signing up for Honeycomb
 
-This is required only if you plan to run locally. If you plan to use gitpod, skip to the next section.
+### Sign up for an Account
+
+https://ui.honeycomb.io/signup
+
+### Create a team
+
+https://ui.honeycomb.io/teams
+
+## Option 1 - Local Setup
+
+This is required only if you plan to run locally. If you plan to use GitHub Codespaces, follow the instructions in the Codespaces section.
 
 ### JDK
 
@@ -14,19 +24,16 @@ https://docs.oracle.com/en/java/javase/17/install/overview-jdk-installation.html
 
 https://gradle.org/install/
 
-## Signing up for Honeycomb
+### Go
 
-### Sign up for an Account
+Version 1.16 or greater is required.
 
-https://ui.honeycomb.io/signup
-
-### Create a team
-
-https://ui.honeycomb.io/teams
+Download and installation instructions can be found here:
+https://golang.org/dl/
 
 ### Add API key to your environment
 
-(Skip this step if you are using gitpod)
+(Skip this step if you are not running locally)
 
 ```shell
 # bash/zsh
@@ -36,17 +43,15 @@ export HONEYCOMB_API_KEY=<your-api-key>
 set -gx HONEYCOMB_API_KEY <your-api-key>
 ```
 
-## Signing up for Gitpod
+## Option 2 - GitHub Codespaces
 
-Sign up for Gitpod using your GitHub account at https://gitpod.io
+You can run this repository using [GitHub Codespaces](https://docs.github.com/en/codespaces).
 
-## Setting up Gitpod
-
-Add the HONEYCOMB_API_KEY to https://gitpod.io/variables with scope \*/\*
-
-## Opening the repo in Gitpod
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/kaushald/observability-tutorial)
+1. Open the repository on GitHub.
+2. Click the **Code** button and select **Open with Codespaces**.
+3. If you don't have a Codespace already, create a new one.
+4. Once your Codespace is ready, you'll have an environment pre-configured to run the examples.
+5. Update the `HONEYCOMB_API_KEY` environment variable in the `.env` file with your Honeycomb API key you generated above.
 
 ## Running the examples
 
@@ -56,6 +61,5 @@ Navigate to the folders starting with 00\* and run the bnd.sh script.
 cd 001-basic
 ./bnd.sh
 
-# To stop the services if needed
-./stop.sh
+# To stop the services press Ctrl+C
 ```
