@@ -1,3 +1,3 @@
 cd java-jokes || exit
-gradle bootJar
+./gradlew bootJar
 java -jar build/libs/java-jokes.jar
