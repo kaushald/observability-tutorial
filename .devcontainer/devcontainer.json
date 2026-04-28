@@ -6,8 +6,5 @@
       "version": "1.21"
     }
   },
-  "postCreateCommand": "java -version && go version",
-  "remoteEnv": {
-    "JAVA_HOME": "/usr/local/sdkman/candidates/java/current"
-  }
+  "postCreateCommand": "java -version && go version"
 }
