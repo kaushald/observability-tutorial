@@ -8,14 +8,8 @@
 # Ignore Gradle GUI config
 gradle-app.setting
 
-# ignore Gradle wrapper jar file
-gradle-wrapper.jar
-
 # Cache of project
 .gradletasknamecache
-
-# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
-**/gradle/wrapper/gradle-wrapper.properties
 
 # IntelliJ Module files
 *.iml
