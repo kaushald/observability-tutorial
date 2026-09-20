@@ -6,6 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LESSON="${1:?usage: smoke.sh <lesson-dir>}"
 LOG="$(mktemp)"
+BODY="$(mktemp)"
+# Lesson number decides which checks apply: later lessons keep every earlier change
+lesson_number=$((10#${LESSON%%-*}))
 
 export OTEL_TRACES_EXPORTER=console
 BASE="http://localhost:${ORDER_PORT:-8080}"
@@ -35,7 +38,7 @@ grep "^Ready in" "$LOG"
 
 # order <restaurantId> <itemId> [cardNumber]
 order() {
-  curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/orders" \
+  curl -s -o "$BODY" -w '%{http_code}' -X POST "$BASE/api/orders" \
     -H 'Content-Type: application/json' \
     -d "{\"restaurantId\":$1,\"itemIds\":[$2],\"cardNumber\":\"${3:-4242 4242 4242 4242}\"}"
 }
@@ -57,6 +60,15 @@ code="$(order 2 "$(first_item 2)")"
 [ "$code" = "504" ] || fail "order from restaurant 2 returned $code, expected 504"
 echo "ok: order from Slow Noodles failed (504)"
 
+if [ "$lesson_number" -ge 5 ]; then
+  failed_order="$(grep -o '"orderId":[0-9]*' "$BODY" | awk -F: 'NR == 1 { print $2 }')"
+  code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/orders/$failed_order/refund")"
+  [ "$code" = "200" ] || fail "refund of failed order $failed_order returned $code, expected 200"
+  code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/orders/$failed_order/refund")"
+  [ "$code" = "409" ] || fail "second refund of order $failed_order returned $code, expected 409"
+  echo "ok: failed order $failed_order refunded once (200, then 409)"
+fi
+
 # Stop the lesson so every service flushes its spans
 stop_lesson
 trap - EXIT
@@ -77,9 +89,6 @@ else
   echo "ok: delivery-service span is in the same trace"
   grep -Eqi "^\[orders\].*'SELECT " "$LOG" || fail "no database spans from the order service"
   echo "ok: database spans present"
-  # Lesson number decides which checks apply: later lessons keep every earlier change
-  lesson_number=$((10#${LESSON%%-*}))
-
   notification="$(grep -m1 -E '^\[delivery\].*"Name":"POST /notifications"' "$LOG" || true)"
   [ -n "$notification" ] || fail "delivery-service has no POST /notifications span"
   if [ "$lesson_number" -lt 3 ]; then
@@ -112,7 +121,18 @@ else
     grep -Eq "^\[orders\].*'POST /api/orders' : .*payment.declined=true" "$LOG" || fail "no span with payment.declined=true for the declined card"
     echo "ok: declined card recorded as an attribute"
   fi
+
+  if [ "$lesson_number" -ge 5 ]; then
+    refund_trace="$(grep -o "'refund-order' : [0-9a-f]\{32\}" "$LOG" | awk 'NR == 1 { print $NF }')"
+    [ -n "$refund_trace" ] || fail "no 'refund-order' span from the order service"
+    grep -Eq "^\[orders\].*'refund-payment' : $refund_trace" "$LOG" || fail "no 'refund-payment' span in the refund trace"
+    # A refund is linked to the order, not a child of it: it must be in a trace of its own
+    if grep -Eq "'POST /api/orders' : $refund_trace" "$LOG"; then
+      fail "the refund is inside an order's trace; it should be a separate, linked trace"
+    fi
+    echo "ok: refund has its own trace with refund-order and refund-payment spans"
+  fi
 fi
 
-rm -f "$LOG"
+rm -f "$LOG" "$BODY"
 echo "PASS: $LESSON"

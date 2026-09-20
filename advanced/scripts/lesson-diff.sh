@@ -17,6 +17,7 @@ allowed_for() {
     002-spans) echo "build.gradle $SRC/OrderService.java $SRC/PaymentService.java $TEST/TracingTests.java" ;;
     003-async) echo "$SRC/ConfirmationSender.java $TEST/TracingTests.java" ;;
     004-events) echo "$SRC/OrderService.java $TEST/TracingTests.java" ;;
+    005-links) echo "$SRC/Api.java $SRC/Controllers.java $SRC/CustomerOrder.java $SRC/Exceptions.java $SRC/OrderService.java $SRC/PaymentService.java src/main/resources/static/index.html $TEST/OrderServiceApplicationTests.java $TEST/TracingTests.java" ;;
     *) echo "" ;;
   esac
 }
