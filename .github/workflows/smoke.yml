@@ -16,21 +16,22 @@ jobs:
           java-version: "17"
       - uses: actions/setup-go@v5
         with:
-          go-version-file: services/go.mod
-          cache-dependency-path: services/go.sum
+          go-version-file: advanced/services/go.mod
+          cache-dependency-path: advanced/services/go.sum
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Go tests
-        working-directory: services
+        working-directory: advanced/services
         run: go vet ./... && go test ./...
 
       - name: Java tests
+        working-directory: advanced
         run: ./gradlew test
 
       - name: Build all lessons
-        run: scripts/build.sh
+        run: advanced/scripts/build.sh
 
       - name: Smoke test lessons
         run: |
-          scripts/smoke.sh 000-baseline
-          scripts/smoke.sh 001-auto
+          advanced/scripts/smoke.sh 000-baseline
+          advanced/scripts/smoke.sh 001-auto

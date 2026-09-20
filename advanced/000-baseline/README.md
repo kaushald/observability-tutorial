@@ -5,7 +5,7 @@ Three services, three log streams, and nothing connecting them.
 ## Run it
 
 ```
-cd 000-baseline
+cd advanced/000-baseline
 ./run.sh
 ```
 

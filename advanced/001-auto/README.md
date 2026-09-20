@@ -17,12 +17,12 @@ Put your Honeycomb API key in `.env` at the repository root (or set a Codespaces
 named `HONEYCOMB_API_KEY`), then:
 
 ```
-cd 001-auto
+cd advanced/001-auto
 ./run.sh
 ```
 
 Open the URL it prints, order from Bella Pizza, then order from Slow Noodles.
-Press Ctrl+C to stop. If something is left running, use `scripts/stop.sh`.
+Press Ctrl+C to stop. If something is left running, use `advanced/scripts/stop.sh`.
 
 ## What to look for in Honeycomb
 

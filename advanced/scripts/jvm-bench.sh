@@ -4,7 +4,7 @@
 set -uo pipefail
 ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 JAR="$ROOT/001-auto/order-service/build/libs/order-service.jar"
-AGENT="$ROOT/lib/opentelemetry-javaagent.jar"
+AGENT="$ROOT/../lib/opentelemetry-javaagent.jar"
 PORT=18080
 NAME=jvm-bench-run
 

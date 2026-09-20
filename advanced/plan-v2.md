@@ -1,6 +1,6 @@
 # Food Delivery Tutorial: Codespaces-First Plan (v2)
 
-This replaces the approach in `plan.md` and `FOOD_DELIVERY_PLAN.md`. The domain and the
+This replaces the approach in `docs/v1/plan.md` and `docs/v1/FOOD_DELIVERY_PLAN.md`. The domain and the
 teaching arc stay. The size of the system shrinks until it fits the one constraint that
 cannot move: a student on a free GitHub account opens a Codespace and has a running,
 traced app within a few minutes.
@@ -93,20 +93,26 @@ Left for a take-home appendix: sampling, an OTel Collector, metrics and logs.
 
 ## Repository layout
 
+Everything for this track lives under `advanced/`. The jokes lessons stay at the repository
+root as the basic track. `.devcontainer/`, `.github/`, `lib/` and `.env` stay at the root
+because GitHub requires the first two there and the basic lessons share the other two.
+
 ```
-.devcontainer/devcontainer.json
-settings.gradle            # one Gradle build, one wrapper, all lessons as subprojects
-gradlew, gradle/
-lib/opentelemetry-javaagent.jar   # vendored and pinned, no download at startup
-services/
-  kitchen-service/         # Go, one copy
-  delivery-service/        # Go, one copy
-  loadgen/                 # Go, used by lunch-rush.sh
-000-baseline/run.sh
-001-auto/{order-service/, run.sh, README.md}
-002-spans/ ... 006-investigate/   # same shape
-scripts/{env.sh, stop.sh, doctor.sh, lunch-rush.sh, smoke.sh}
-legacy/jokes/              # current lessons, moved at cutover
+.devcontainer/{devcontainer.json, install-go.sh}
+lib/opentelemetry-javaagent.jar   # vendored and pinned, shared with the basic lessons
+001-basic/ ... 006-cross-service/ # basic track (jokes), unchanged
+advanced/
+  settings.gradle          # one Gradle build, one wrapper, all lessons as subprojects
+  gradlew, gradle/
+  services/
+    kitchen-service/       # Go, one copy
+    delivery-service/      # Go, one copy
+    loadgen/               # Go, used by lunch-rush.sh
+  000-baseline/run.sh
+  001-auto/{order-service/, run.sh, README.md}
+  002-spans/ ... 006-investigate/   # same shape
+  scripts/{env.sh, stop.sh, doctor.sh, lunch-rush.sh, smoke.sh}
+  docs/                    # measurements, JVM comparison, the superseded v1 plan
 ```
 
 A single root Gradle build fixes the problem PR #3 had to patch in six places (a wrapper
@@ -165,8 +171,9 @@ Tests come first in each step: JUnit for the order flow, Go tests for the two se
 3. **Lessons 002-005.** Mostly ports of the existing `JokeController` demos into the order
    flow.
 4. **Lesson 006.** Load generator, the fixed variant, Honeycomb queries for the README.
-5. **Dry run and cutover.** Full run-through on a fresh free account with a timer. Move the
-   jokes lessons to `legacy/jokes/`, rewrite the root README.
+5. **Dry run and cutover.** Full run-through on a fresh free account with a timer. The
+   jokes lessons stay where they are as the basic track; the root README gets a section
+   for each track.
 
 ## Decisions
 

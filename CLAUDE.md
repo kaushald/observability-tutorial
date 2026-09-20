@@ -67,3 +67,19 @@ The 006-cross-service example demonstrates distributed tracing across languages:
 - The joke endpoints contain hardcoded jokes array for consistent testing
 - Go service uses Honeycomb Beeline SDK for native instrumentation
 - Agent JAR files are shared in `lib/` directory to avoid duplication
+## Advanced track (`advanced/`)
+
+A second, more realistic tutorial lives under `advanced/`: a food delivery app with a Java
+order service (Spring Boot 3.5, H2) and two Go services (kitchen, delivery). The plan is
+`advanced/plan-v2.md`; `advanced/docs/v1/` holds the superseded first plan.
+
+- One Gradle build for all lessons: `cd advanced && ./gradlew test`
+- Go module: `advanced/services` (`go test ./...`)
+- Run a lesson: `cd advanced/001-auto && ./run.sh`; stop leftovers with `advanced/scripts/stop.sh`
+- End-to-end check without a Honeycomb key: `advanced/scripts/smoke.sh 001-auto`
+- `advanced/scripts/env.sh` is the one place for OpenTelemetry settings, ports and JVM flags.
+  It reads `.env` and `lib/opentelemetry-javaagent.jar` from the repository root.
+- The order service has deliberate problems that later lessons expose (a kitchen timeout,
+  an orphaned confirmation thread, an N+1 menu query). Do not fix them in lesson 001.
+- Hard constraint: everything must start quickly on a free 2-core GitHub Codespace.
+  Measurements are in `advanced/docs/codespace-measurements.md`.

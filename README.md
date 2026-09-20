@@ -64,21 +64,22 @@ cd 001-basic
 # To stop the services press Ctrl+C
 ```
 
-## Food delivery app (rewrite in progress)
+## Advanced track: food delivery app (in progress)
 
-A more realistic app is being built alongside the jokes lessons: an order service (Java)
-that calls a kitchen service and a delivery service (both Go). See `plan-v2.md`.
+The `advanced/` folder holds a more realistic app: an order service (Java) that calls a
+kitchen service and a delivery service (both Go). The lessons above stay as the basic
+track. See `advanced/plan-v2.md`.
 
 ```shell
-cd 000-baseline   # no tracing, no API key needed
+cd advanced/000-baseline   # no tracing, no API key needed
 ./run.sh
 
-cd 001-auto       # same code, traced by the OpenTelemetry Java agent
+cd advanced/001-auto       # same code, traced by the OpenTelemetry Java agent
 ./run.sh
 
-# To stop press Ctrl+C. If something is left running: scripts/stop.sh
+# To stop press Ctrl+C. If something is left running: advanced/scripts/stop.sh
 ```
 
-`scripts/smoke.sh 001-auto` checks a lesson end to end without a Honeycomb key.
+`advanced/scripts/smoke.sh 001-auto` checks a lesson end to end without a Honeycomb key.
 If ports 8080-8082 are taken on your machine, set `ORDER_PORT`, `KITCHEN_PORT` and
 `DELIVERY_PORT` before running.

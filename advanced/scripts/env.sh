@@ -1,10 +1,12 @@
 # Sourced by the lesson scripts. The one place for OpenTelemetry and JVM settings.
-# Expects ROOT to be set to the repository root.
+# Expects ROOT to be set to the advanced/ directory. The API key file and the Java agent
+# live one level up, shared with the basic lessons.
+REPO_ROOT="$(dirname "$ROOT")"
 
 # API key: a Codespaces secret named HONEYCOMB_API_KEY wins, otherwise read .env
-if [ -z "${HONEYCOMB_API_KEY:-}" ] && [ -f "$ROOT/.env" ]; then
+if [ -z "${HONEYCOMB_API_KEY:-}" ] && [ -f "$REPO_ROOT/.env" ]; then
   set -a
-  . "$ROOT/.env"
+  . "$REPO_ROOT/.env"
   set +a
 fi
 
@@ -34,4 +36,4 @@ export DELIVERY_PORT="${DELIVERY_PORT:-8082}"
 # Small heap, serial collector, C1 compiler only and smaller thread stacks: the fastest start
 # and lowest memory of the options measured in docs/jvm-comparison.md
 JAVA_OPTS="${JAVA_OPTS:--Xmx256m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k}"
-JAVA_AGENT="$ROOT/lib/opentelemetry-javaagent.jar"
+JAVA_AGENT="$REPO_ROOT/lib/opentelemetry-javaagent.jar"

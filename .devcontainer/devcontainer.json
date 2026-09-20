@@ -15,7 +15,7 @@
     "8082": { "label": "delivery-service", "onAutoForward": "ignore" }
   },
   // Builds every lesson once. A Codespaces prebuild runs this ahead of time.
-  "updateContentCommand": "bash scripts/build.sh",
+  "updateContentCommand": "bash advanced/scripts/build.sh",
   "postCreateCommand": "java -version && /usr/local/go/bin/go version",
   "customizations": {
     "vscode": {

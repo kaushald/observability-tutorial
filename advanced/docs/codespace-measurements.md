@@ -1,6 +1,6 @@
 # Codespace measurements
 
-The plan in `plan-v2.md` only works if these numbers hold on a free account. Measure on
+The plan in `../plan-v2.md` only works if these numbers hold on a free account. Measure on
 the default 2-core machine, from a GitHub account on the Free plan, with no prebuild
 configured. Then configure a prebuild and repeat the first two rows.
 
@@ -8,12 +8,12 @@ configured. Then configure a prebuild and repeat the first two rows.
 |---|---|---|---|---|
 | 1 | Codespace creation until the terminal is usable | Stopwatch from clicking "Create codespace" | 5 min without prebuild, 1 min with | |
 | 2 | One-time build | `scripts/build.sh` prints "Build finished in Ns". It runs as `updateContentCommand`; see the creation log (Cmd/Ctrl+Shift+P, "Codespaces: View Creation Log") | included in row 1 | |
-| 3 | Lesson start | `cd 001-auto && ./run.sh` prints "Ready in Ns" | 20 s | |
-| 4 | Lesson start, no tracing | `cd 000-baseline && ./run.sh` | 20 s | |
+| 3 | Lesson start | `cd advanced/001-auto && ./run.sh` prints "Ready in Ns" | 20 s | |
+| 4 | Lesson start, no tracing | `cd advanced/000-baseline && ./run.sh` | 20 s | |
 | 5 | First trace visible | Place an order, stopwatch until it shows in Honeycomb | 10 s | |
-| 6 | Memory | In a second terminal while a lesson runs: `scripts/measure.sh` | 1 GB total | |
+| 6 | Memory | In a second terminal while a lesson runs: `advanced/scripts/measure.sh` | 1 GB total | |
 | 7 | Machine | `nproc` and `free -g` | | |
-| 8 | Works end to end without a key | `scripts/smoke.sh 001-auto` prints PASS | | |
+| 8 | Works end to end without a key | `advanced/scripts/smoke.sh 001-auto` prints PASS | | |
 
 Also check:
 
@@ -85,7 +85,7 @@ port when the order service starts listening.
 | Creation without a prebuild | 5 min | 2 min 5 s |
 | `000-baseline/run.sh` ready | 20 s | 5 s |
 | `001-auto/run.sh` ready (agent attached) | 20 s | 9 s |
-| Memory, `scripts/measure.sh` | 1 GB | 244 MB total: order service 217, kitchen 13, delivery 12 |
+| Memory, `advanced/scripts/measure.sh` | 1 GB | 244 MB total: order service 217, kitchen 13, delivery 12 |
 | `scripts/smoke.sh 001-auto` | PASS | PASS |
 | App through the forwarded 8080 URL | works | works |
 

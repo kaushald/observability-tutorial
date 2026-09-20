@@ -22,7 +22,7 @@ RUN_DIR="$ROOT/.run"
 # Refuse to start on top of a previous run
 for port in "$ORDER_PORT" "$KITCHEN_PORT" "$DELIVERY_PORT"; do
   if command -v lsof >/dev/null && lsof -ti "tcp:$port" -sTCP:LISTEN >/dev/null 2>&1; then
-    echo "Error: port $port is in use. Run scripts/stop.sh first." >&2
+    echo "Error: port $port is in use. Run advanced/scripts/stop.sh first." >&2
     exit 1
   fi
 done
