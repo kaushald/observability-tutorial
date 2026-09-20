@@ -49,3 +49,22 @@ Changes made in response:
 - Replaced `autoexport` in the Go services with the two exporters actually used, which
   cut the cold Go build by about a quarter.
 - `build.sh` runs the Go build and the Gradle build at the same time.
+
+### 2026-09-20, second attempt (commit 1804324)
+
+From prebuild run 35522323778:
+
+| Phase | Before | After |
+|---|---|---|
+| Clone | 3 s | 3 s |
+| Pull `mcr.microsoft.com/devcontainers/java:17` | 40 s | 32 s |
+| Go toolchain | 182 s (feature) | 3 s (`install-go.sh`) |
+| `build.sh` | 94 s (Go then Gradle) | 82 s (in parallel) |
+| **Total a student waits without a prebuild** | **5 min 38 s** | **2 min 5 s** |
+| Prebuild only: snapshot and upload | about 12 min | about 11 min |
+
+The build is now the largest phase. Running Go and Gradle together saved only 12 s because
+both want the same two cores. Shipping prebuilt Go binaries would remove roughly another
+35 s, at the cost of binaries in git; not done, since a prebuild hides all of this anyway.
+
+Still to measure by hand: creation time with "Prebuild ready", lesson start, memory.
