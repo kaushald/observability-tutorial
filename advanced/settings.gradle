@@ -2,3 +2,6 @@ rootProject.name = 'observability-tutorial'
 
 include 'lesson-001'
 project(':lesson-001').projectDir = file('001-auto/order-service')
+
+include 'lesson-002'
+project(':lesson-002').projectDir = file('002-spans/order-service')

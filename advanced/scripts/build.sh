@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # The Go build runs in the background while Gradle downloads and compiles
 GO_LOG="$(mktemp)"
 echo "Building Go services and order service jars..."
-(cd "$ROOT/services" && go build -o bin/ ./kitchen-service ./delivery-service) > "$GO_LOG" 2>&1 &
+(cd "$ROOT/services" && go build -o bin/ ./kitchen-service ./delivery-service ./loadgen) > "$GO_LOG" 2>&1 &
 GO_BUILD=$!
 
 (cd "$ROOT" && ./gradlew --quiet bootJar)

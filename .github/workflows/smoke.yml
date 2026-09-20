@@ -31,7 +31,11 @@ jobs:
       - name: Build all lessons
         run: advanced/scripts/build.sh
 
-      - name: Smoke test lessons
+      - name: Lessons differ only where they should
+        run: advanced/scripts/lesson-diff.sh --check
+
+      - name: Smoke test every lesson
         run: |
-          advanced/scripts/smoke.sh 000-baseline
-          advanced/scripts/smoke.sh 001-auto
+          for lesson in advanced/[0-9][0-9][0-9]-*/; do
+            advanced/scripts/smoke.sh "$(basename "$lesson")"
+          done

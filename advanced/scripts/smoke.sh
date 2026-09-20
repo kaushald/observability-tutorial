@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Starts a lesson with spans printed to the console, places two orders, and checks
 # that the traces look the way the lesson promises. No Honeycomb key needed.
-# Usage: scripts/smoke.sh <000-baseline|001-auto>
+# Usage: scripts/smoke.sh <lesson-dir>, for example scripts/smoke.sh 001-auto
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LESSON="${1:?usage: smoke.sh <lesson-dir>}"
@@ -77,14 +77,41 @@ else
   echo "ok: delivery-service span is in the same trace"
   grep -Eqi "^\[orders\].*'SELECT " "$LOG" || fail "no database spans from the order service"
   echo "ok: database spans present"
-  # The confirmation runs on a raw thread, so until lesson 003 fixes it, its span
-  # must be in a different trace from the order
+  # Lesson number decides which checks apply: later lessons keep every earlier change
+  lesson_number=$((10#${LESSON%%-*}))
+
   notification="$(grep -m1 -E '^\[delivery\].*"Name":"POST /notifications"' "$LOG" || true)"
   [ -n "$notification" ] || fail "delivery-service has no POST /notifications span"
-  case "$notification" in
-    *"$trace_id"*) fail "the confirmation span is inside the order trace; it should be orphaned in this lesson" ;;
-  esac
-  echo "ok: confirmation span is orphaned from the order trace"
+  if [ "$lesson_number" -lt 3 ]; then
+    # The confirmation runs on a raw thread, so until lesson 003 fixes it, its span
+    # must be in a different trace from the order
+    case "$notification" in
+      *"$trace_id"*) fail "the confirmation span is inside the order trace; it should be orphaned in this lesson" ;;
+    esac
+    echo "ok: confirmation span is orphaned from the order trace"
+  else
+    case "$notification" in
+      *"$trace_id"*) echo "ok: confirmation span is inside the order trace" ;;
+      *) fail "the confirmation span is not in the order trace; lesson 003 should have fixed that" ;;
+    esac
+  fi
+
+  if [ "$lesson_number" -ge 2 ]; then
+    for span in validate-order calculate-price authorize-payment fulfil-order; do
+      grep -Eq "^\[orders\].*'$span' : $trace_id" "$LOG" || fail "no '$span' span in the order trace"
+    done
+    echo "ok: manual spans present (validate-order, calculate-price, authorize-payment, fulfil-order)"
+    server_span="$(grep -m1 -E "^\[orders\].*'POST /api/orders' : $trace_id" "$LOG" || true)"
+    for attribute in "order.id=" "restaurant.id=1" "order.total_cents=" "order.item_count=1" "payment.declined=false"; do
+      case "$server_span" in
+        *"$attribute"*) ;;
+        *) fail "the order's server span is missing attribute $attribute" ;;
+      esac
+    done
+    echo "ok: order attributes are on the server span"
+    grep -Eq "^\[orders\].*'POST /api/orders' : .*payment.declined=true" "$LOG" || fail "no span with payment.declined=true for the declined card"
+    echo "ok: declined card recorded as an attribute"
+  fi
 fi
 
 rm -f "$LOG"
