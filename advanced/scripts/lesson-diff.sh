@@ -16,6 +16,7 @@ allowed_for() {
   case "$1" in
     002-spans) echo "build.gradle $SRC/OrderService.java $SRC/PaymentService.java $TEST/TracingTests.java" ;;
     003-async) echo "$SRC/ConfirmationSender.java $TEST/TracingTests.java" ;;
+    004-events) echo "$SRC/OrderService.java $TEST/TracingTests.java" ;;
     *) echo "" ;;
   esac
 }

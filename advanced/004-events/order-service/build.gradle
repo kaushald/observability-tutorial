@@ -1,0 +1,16 @@
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.h2database:h2'
+
+    // Lesson 002: the OpenTelemetry API and the @WithSpan annotation. The javaagent
+    // (added in run.sh) supplies the SDK at runtime, so no SDK or exporter is a
+    // dependency here and none is configured in main code.
+    implementation 'io.opentelemetry:opentelemetry-api'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:2.14.0'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Lesson 002: an in-memory OpenTelemetry SDK for tests only, so TracingTests can
+    // assert on real spans without the javaagent.
+    testImplementation 'io.opentelemetry:opentelemetry-sdk-testing'
+}

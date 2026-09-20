@@ -7,3 +7,6 @@ include 'lesson-002'
 project(':lesson-002').projectDir = file('002-spans/order-service')
 include 'lesson-003'
 project(':lesson-003').projectDir = file('003-async/order-service')
+
+include 'lesson-004'
+project(':lesson-004').projectDir = file('004-events/order-service')
