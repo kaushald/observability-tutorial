@@ -68,3 +68,11 @@ both want the same two cores. Shipping prebuilt Go binaries would remove roughly
 35 s, at the cost of binaries in git; not done, since a prebuild hides all of this anyway.
 
 Still to measure by hand: creation time with "Prebuild ready", lesson start, memory.
+
+### 2026-09-20, with a prebuild (commit 7d5cd7c)
+
+Creation from "Prebuild ready" to a usable terminal: under a minute (hand-timed).
+
+Port 8080 was forwarded straight away because of `forwardPorts`, and opening it before a
+lesson was running gave a 502 page. `forwardPorts` is now removed; Codespaces forwards the
+port when the order service starts listening.

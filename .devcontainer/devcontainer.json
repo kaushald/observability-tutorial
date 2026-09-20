@@ -7,9 +7,10 @@
   "remoteEnv": {
     "PATH": "${containerEnv:PATH}:/usr/local/go/bin"
   },
-  "forwardPorts": [8080],
+  // No forwardPorts: a port forwarded before a lesson runs shows a 502 page.
+  // Codespaces forwards 8080 by itself once the order service starts listening.
   "portsAttributes": {
-    "8080": { "label": "Food delivery app" },
+    "8080": { "label": "Food delivery app", "onAutoForward": "notify" },
     "8081": { "label": "kitchen-service", "onAutoForward": "ignore" },
     "8082": { "label": "delivery-service", "onAutoForward": "ignore" }
   },
