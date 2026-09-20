@@ -3,6 +3,7 @@
 # Usage: scripts/start-lesson.sh <lesson-dir> [--no-tracing]
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+[ -d /usr/local/go/bin ] && PATH="$PATH:/usr/local/go/bin"
 
 LESSON="${1:?usage: start-lesson.sh <lesson-dir> [--no-tracing]}"
 TRACING="on"

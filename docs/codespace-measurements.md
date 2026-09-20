@@ -23,3 +23,29 @@ Also check:
 - A codespace created from a fork of the repo: does it use the parent repo's prebuild?
 
 For comparison, time the current `002-spans` lesson the same way (`cd 002-spans && ./bnd.sh`).
+
+## Results
+
+### 2026-09-20, first attempt (commit a4f8dfa)
+
+Codespace creation took more than 5 minutes. Phase timings from the prebuild workflow log
+(run 35519685130), which performs the same steps on the same kind of machine:
+
+| Phase | Time |
+|---|---|
+| Clone | 3 s |
+| Pull `mcr.microsoft.com/devcontainers/java:17` | 40 s |
+| Go devcontainer feature (downloads Go, compiles gopls, dlv, staticcheck) | 182 s |
+| `build.sh`: Go services | 48 s |
+| `build.sh`: Gradle distribution, dependencies, jar | 46 s |
+| **Total a student waits without a prebuild** | **5 min 38 s** |
+| Prebuild only: snapshot the disk | about 5 min |
+| Prebuild only: upload to two East US locations | about 7 min |
+
+Changes made in response:
+
+- Dropped the Go feature. `.devcontainer/install-go.sh` installs only the toolchain (3 s in
+  a local rehearsal). With no features left, Codespaces also skips the image build step.
+- Replaced `autoexport` in the Go services with the two exporters actually used, which
+  cut the cold Go build by about a quarter.
+- `build.sh` runs the Go build and the Gradle build at the same time.

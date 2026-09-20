@@ -1,10 +1,11 @@
 {
   "name": "Observability Tutorial",
   "image": "mcr.microsoft.com/devcontainers/java:17",
-  "features": {
-    "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.25"
-    }
+  // No devcontainer features: each one forces an image build when the Codespace is
+  // created. Go comes from install-go.sh instead (seconds, not minutes).
+  "onCreateCommand": "bash .devcontainer/install-go.sh",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/usr/local/go/bin"
   },
   "forwardPorts": [8080],
   "portsAttributes": {
@@ -14,7 +15,7 @@
   },
   // Builds every lesson once. A Codespaces prebuild runs this ahead of time.
   "updateContentCommand": "bash scripts/build.sh",
-  "postCreateCommand": "java -version && go version",
+  "postCreateCommand": "java -version && /usr/local/go/bin/go version",
   "customizations": {
     "vscode": {
       // The Java image adds the Java extension pack by default. Its language server

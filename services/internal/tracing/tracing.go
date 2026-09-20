@@ -9,8 +9,9 @@ import (
 	"context"
 	"os"
 
-	"go.opentelemetry.io/contrib/exporters/autoexport"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
@@ -27,10 +28,11 @@ func noopShutdown(context.Context) error { return nil }
 // place, so instrumented code is safe to call but produces no spans and
 // does not propagate trace context.
 //
-// If TRACING=on, Init builds a span exporter from the standard OpenTelemetry
-// environment variables via autoexport (OTEL_TRACES_EXPORTER,
-// OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS,
-// OTEL_EXPORTER_OTLP_PROTOCOL), installs a TracerProvider with a batch span
+// If TRACING=on, Init builds a span exporter: OTEL_TRACES_EXPORTER=console
+// prints spans to stdout, anything else sends OTLP over HTTP, configured by
+// the standard OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS
+// variables. Only these two exporters are linked in, which keeps the build
+// fast on a small Codespace. Init then installs a TracerProvider with a batch span
 // processor and the default resource (service name from OTEL_SERVICE_NAME),
 // sets it as the global tracer provider, and sets the global propagator to
 // W3C TraceContext + Baggage. The returned shutdown func flushes and closes
@@ -40,7 +42,7 @@ func Init(ctx context.Context) (shutdown func(context.Context) error, err error)
 		return noopShutdown, nil
 	}
 
-	exporter, err := autoexport.NewSpanExporter(ctx)
+	exporter, err := newExporter(ctx)
 	if err != nil {
 		return noopShutdown, err
 	}
@@ -56,4 +58,11 @@ func Init(ctx context.Context) (shutdown func(context.Context) error, err error)
 	))
 
 	return tp.Shutdown, nil
+}
+
+func newExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
+	if os.Getenv("OTEL_TRACES_EXPORTER") == "console" {
+		return stdouttrace.New()
+	}
+	return otlptracehttp.New(ctx)
 }
