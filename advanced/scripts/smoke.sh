@@ -122,6 +122,18 @@ else
     echo "ok: declined card recorded as an attribute"
   fi
 
+  # The menu loads tags one item at a time until lesson 006 fixes it. This script opens
+  # three menus of 8 items (once per order it places), so the planted N+1 shows up as
+  # 24 tag queries.
+  tag_queries="$(grep -c "'SELECT orderdb.menu_item_tags\?'" "$LOG" || true)"
+  if [ "$lesson_number" -lt 6 ]; then
+    [ "$tag_queries" -ge 24 ] || fail "expected the planted N+1 (24 tag queries), found $tag_queries"
+    echo "ok: planted N+1 is present ($tag_queries tag queries for three menus)"
+  else
+    [ "$tag_queries" -eq 0 ] || fail "lesson 006 should load tags with the items, found $tag_queries separate tag queries"
+    echo "ok: N+1 is fixed (no separate tag queries)"
+  fi
+
   if [ "$lesson_number" -ge 5 ]; then
     refund_trace="$(grep -o "'refund-order' : [0-9a-f]\{32\}" "$LOG" | awk 'NR == 1 { print $NF }')"
     [ -n "$refund_trace" ] || fail "no 'refund-order' span from the order service"

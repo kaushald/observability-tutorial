@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Order Food</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; }
+  .restaurant-list { list-style: none; padding: 0; }
+  .restaurant-list li { padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.5rem; cursor: pointer; }
+  .restaurant-list li.selected { border-color: #333; background: #f5f5f5; }
+  .menu-item { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.35rem 0; }
+  .menu-item label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
+  .tag-badge {
+    display: inline-block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.02em;
+    padding: 0.1rem 0.4rem; border-radius: 999px; background: #eef2f7; color: #445; border: 1px solid #d7dee7;
+  }
+  .payment { margin-top: 1.5rem; }
+  .payment label { display: block; font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .payment input { font-size: 1rem; padding: 0.4rem; width: 100%; max-width: 260px; box-sizing: border-box; }
+  .payment .hint { display: block; font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
+  button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; margin-top: 1rem; }
+  button:disabled { cursor: not-allowed; opacity: 0.6; }
+  #result { margin-top: 1.5rem; padding: 1rem; border-radius: 6px; }
+  #result.success { background: #e8f7ec; border: 1px solid #2e7d32; }
+  #result.declined { background: #fff3e0; border: 1px solid #e65100; color: #e65100; }
+  #result.failure { background: #fdecea; border: 1px solid #c62828; color: #c62828; }
+  #result dl { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; margin: 0; }
+</style>
+</head>
+<body>
+<h1>Order Food</h1>
+
+<h2>Restaurants</h2>
+<ul class="restaurant-list" id="restaurants"></ul>
+
+<div id="menuSection" style="display:none;">
+  <h2 id="menuHeading">Menu</h2>
+  <div id="menu"></div>
+
+  <div class="payment">
+    <label for="cardNumber">Card number</label>
+    <input type="text" id="cardNumber" value="4242 4242 4242 4242">
+    <small class="hint">Use a card ending in 0000 to see a declined payment</small>
+  </div>
+
+  <button id="placeOrder">Place order</button>
+</div>
+
+<div id="result" style="display:none;"></div>
+
+<script>
+let selectedRestaurantId = null;
+let menuItems = [];
+
+async function loadRestaurants() {
+  const response = await fetch('/api/restaurants');
+  const restaurants = await response.json();
+  const list = document.getElementById('restaurants');
+  list.innerHTML = '';
+  restaurants.forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = `${r.name} (${r.cuisine})`;
+    li.addEventListener('click', () => selectRestaurant(r.id, r.name));
+    list.appendChild(li);
+  });
+}
+
+async function selectRestaurant(id, name) {
+  selectedRestaurantId = id;
+  document.querySelectorAll('.restaurant-list li').forEach(li => li.classList.remove('selected'));
+  [...document.querySelectorAll('.restaurant-list li')]
+    .find(li => li.textContent.startsWith(name))
+    .classList.add('selected');
+
+  const response = await fetch(`/api/restaurants/${id}/menu`);
+  menuItems = await response.json();
+
+  const menu = document.getElementById('menu');
+  menu.innerHTML = '';
+  menuItems.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'menu-item';
+    const tagsHtml = (item.tags || [])
+      .map(tag => `<span class="tag-badge">${tag}</span>`)
+      .join('');
+    row.innerHTML = `
+      <input type="checkbox" id="item-${item.id}" value="${item.id}">
+      <label for="item-${item.id}">${item.name} - $${(item.priceCents / 100).toFixed(2)} ${tagsHtml}</label>
+    `;
+    menu.appendChild(row);
+  });
+
+  document.getElementById('menuHeading').textContent = `Menu: ${name}`;
+  document.getElementById('menuSection').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+}
+
+async function placeOrder() {
+  const itemIds = [...document.querySelectorAll('#menu input[type=checkbox]:checked')]
+    .map(cb => Number(cb.value));
+
+  if (itemIds.length === 0) {
+    alert('Select at least one item.');
+    return;
+  }
+
+  const cardNumber = document.getElementById('cardNumber').value;
+  const button = document.getElementById('placeOrder');
+  button.disabled = true;
+
+  const started = performance.now();
+  try {
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurantId: selectedRestaurantId, itemIds, cardNumber })
+    });
+    const elapsedMs = Math.round(performance.now() - started);
+    const body = await response.json();
+    showResult(body, elapsedMs);
+  } catch (err) {
+    const elapsedMs = Math.round(performance.now() - started);
+    showResult({ message: String(err) }, elapsedMs);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function showResult(body, elapsedMs) {
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+
+  const status = body.status || 'ERROR';
+  if (status === 'CONFIRMED') {
+    result.className = 'success';
+  } else if (status === 'DECLINED') {
+    result.className = 'declined';
+  } else {
+    result.className = 'failure';
+  }
+
+  if (status === 'CONFIRMED') {
+    result.innerHTML = `
+      <dl>
+        <dt>Status</dt><dd>${body.status}</dd>
+        <dt>Total</dt><dd>$${(body.totalCents / 100).toFixed(2)}</dd>
+        <dt>Driver</dt><dd>${body.driver ?? '-'}</dd>
+        <dt>ETA</dt><dd>${body.etaMinutes ?? '-'} min</dd>
+        <dt>Took</dt><dd>${elapsedMs} ms</dd>
+      </dl>`;
+  } else {
+    result.innerHTML = `
+      <dl>
+        <dt>Status</dt><dd>${status}</dd>
+        <dt>Message</dt><dd>${body.message ?? 'Unknown error'}</dd>
+        <dt>Took</dt><dd>${elapsedMs} ms</dd>
+      </dl>`;
+
+    // Lesson 005: a failed order has still charged the customer (payment is authorized
+    // before the kitchen call), so offer a refund right from the failure.
+    if (status === 'FAILED' && body.orderId) {
+      const refundButton = document.createElement('button');
+      refundButton.textContent = 'Request refund';
+      refundButton.addEventListener('click', () => requestRefund(body.orderId));
+      result.appendChild(refundButton);
+    }
+  }
+}
+
+// Lesson 005: the refund is its own request, made after the order's request is long
+// over, so it just posts to the refund endpoint and shows the outcome.
+async function requestRefund(orderId) {
+  const response = await fetch(`/api/orders/${orderId}/refund`, { method: 'POST' });
+  const body = await response.json();
+
+  const result = document.getElementById('result');
+  if (response.ok) {
+    result.className = 'success';
+    result.innerHTML = `<p>Refunded $${(body.refundedCents / 100).toFixed(2)}</p>`;
+  } else {
+    result.className = 'failure';
+    result.innerHTML = `<p>${body.message ?? 'Refund failed'}</p>`;
+  }
+}
+
+document.getElementById('placeOrder').addEventListener('click', placeOrder);
+loadRestaurants();
+</script>
+</body>
+</html>

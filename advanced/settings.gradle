@@ -13,3 +13,5 @@ project(':lesson-004').projectDir = file('004-events/order-service')
 
 include 'lesson-005'
 project(':lesson-005').projectDir = file('005-links/order-service')
+include 'lesson-006'
+project(':lesson-006').projectDir = file('006-investigate/order-service')

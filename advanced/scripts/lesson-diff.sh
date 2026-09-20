@@ -18,6 +18,7 @@ allowed_for() {
     003-async) echo "$SRC/ConfirmationSender.java $TEST/TracingTests.java" ;;
     004-events) echo "$SRC/OrderService.java $TEST/TracingTests.java" ;;
     005-links) echo "$SRC/Api.java $SRC/Controllers.java $SRC/CustomerOrder.java $SRC/Exceptions.java $SRC/OrderService.java $SRC/PaymentService.java src/main/resources/static/index.html $TEST/OrderServiceApplicationTests.java $TEST/TracingTests.java" ;;
+    006-investigate) echo "$SRC/Controllers.java $SRC/MenuItemRepository.java $TEST/OrderServiceApplicationTests.java" ;;
     *) echo "" ;;
   esac
 }

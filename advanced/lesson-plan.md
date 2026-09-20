@@ -10,11 +10,11 @@ traces could not answer.
 |---|---|---|---|---|
 | `000-baseline` | 15 | Why do some orders fail? | Logs alone, no correlation | built |
 | `001-auto` | 15 | Which service is at fault? | Auto-instrumentation, context propagation | built |
-| `002-spans` | 20 | Is it always that restaurant? | Attributes, manual spans, error status | planned |
-| `003-async` | 15 | Did the customer get their confirmation? | Context across threads | planned |
-| `004-events` | 10 | What happened to this order, and when? | Span events, recorded exceptions | planned |
-| `005-links` | 15 | Which order was this refund for? | Span links | planned |
-| `006-investigate` | 20 | Why is the lunch rush slow? | Using traces to find and fix problems | planned |
+| `002-spans` | 20 | Is it always that restaurant? | Attributes, manual spans, error status | built |
+| `003-async` | 15 | Did the customer get their confirmation? | Context across threads | built |
+| `004-events` | 10 | What happened to this order, and when? | Span events, recorded exceptions | built |
+| `005-links` | 15 | Which order was this refund for? | Span links | built |
+| `006-investigate` | 20 | Why is the lunch rush slow? | Using traces to find and fix problems | built |
 
 Total: 110 minutes, leaving 10 minutes of slack in a 2-hour session.
 
@@ -154,9 +154,12 @@ places for links.
 
 **Setup.** `advanced/scripts/lunch-rush.sh` sends about 5 requests per second for a minute.
 
-**Students do.** With no hints, find the two things that hurt most under load, using only
-traces: the slow restaurant, and the menu endpoint that runs one query per item. Fix the
-menu query, run the load again, and compare.
+**Students do.** Run lesson 005 under load and, with no hints, find the two things that
+hurt most using only traces: the slow restaurant, and the menu endpoint that runs one query
+per item. Then run `006-investigate`, which holds the fixed menu query, send the same load,
+and compare. Slow Noodles stays broken on purpose: the order service cannot fix the kitchen,
+and the options (longer timeout, charge after the kitchen accepts) make a good closing
+discussion.
 
 **Takeaway.** The same instrumentation that explained one failed order also shows where
 the system spends its time. Optimise what the traces show, not what you guess.
