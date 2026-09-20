@@ -1,0 +1,4 @@
+rootProject.name = 'observability-tutorial'
+
+include 'lesson-001'
+project(':lesson-001').projectDir = file('001-auto/order-service')

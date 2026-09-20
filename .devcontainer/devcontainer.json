@@ -3,8 +3,23 @@
   "image": "mcr.microsoft.com/devcontainers/java:17",
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.21"
+      "version": "1.25"
     }
   },
-  "postCreateCommand": "java -version && go version"
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": { "label": "Food delivery app" },
+    "8081": { "label": "kitchen-service", "onAutoForward": "ignore" },
+    "8082": { "label": "delivery-service", "onAutoForward": "ignore" }
+  },
+  // Builds every lesson once. A Codespaces prebuild runs this ahead of time.
+  "updateContentCommand": "bash scripts/build.sh",
+  "postCreateCommand": "java -version && go version",
+  "customizations": {
+    "vscode": {
+      // The Java image adds the Java extension pack by default. Its language server
+      // needs more memory and CPU than the whole app, so leave it out.
+      "extensions": ["-vscjava.vscode-java-pack"]
+    }
+  }
 }
