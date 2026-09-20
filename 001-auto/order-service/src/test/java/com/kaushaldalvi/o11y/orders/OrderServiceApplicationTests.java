@@ -2,14 +2,14 @@ package com.kaushaldalvi.o11y.orders;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kaushaldalvi.o11y.orders.dto.MenuItemResponse;
-import com.kaushaldalvi.o11y.orders.dto.OrderRequest;
-import com.kaushaldalvi.o11y.orders.dto.OrderResponse;
-import com.kaushaldalvi.o11y.orders.dto.RestaurantResponse;
 import com.sun.net.httpserver.HttpServer;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -47,6 +47,9 @@ class OrderServiceApplicationTests {
     private static final AtomicReference<String> DELIVERY_RESPONSE_BODY =
             new AtomicReference<>("{\"driver\":\"Priya\",\"etaMinutes\":25}");
 
+    private static final AtomicInteger NOTIFICATION_STATUS = new AtomicInteger(202);
+    private static final AtomicReference<String> LAST_NOTIFICATION_BODY = new AtomicReference<>();
+
     static {
         try {
             KITCHEN_SERVER = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
@@ -69,6 +72,11 @@ class OrderServiceApplicationTests {
                 sleepFor(DELIVERY_DELAY_MILLIS.get());
                 writeResponse(exchange, DELIVERY_STATUS.get(), DELIVERY_RESPONSE_BODY.get());
             });
+            DELIVERY_SERVER.createContext("/notifications", exchange -> {
+                String body = readBody(exchange);
+                LAST_NOTIFICATION_BODY.set(body);
+                writeResponse(exchange, NOTIFICATION_STATUS.get(), "{}");
+            });
             DELIVERY_SERVER.setExecutor(Executors.newCachedThreadPool());
             DELIVERY_SERVER.start();
         } catch (IOException e) {
@@ -81,6 +89,7 @@ class OrderServiceApplicationTests {
         registry.add("kitchen.url", () -> "http://localhost:" + KITCHEN_SERVER.getAddress().getPort());
         registry.add("delivery.url", () -> "http://localhost:" + DELIVERY_SERVER.getAddress().getPort());
         registry.add("downstream.read-timeout-ms", () -> "300");
+        registry.add("spring.jpa.properties.hibernate.generate_statistics", () -> "true");
     }
 
     @AfterAll
@@ -91,6 +100,9 @@ class OrderServiceApplicationTests {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     private final TestRestTemplate rest = new TestRestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -105,6 +117,9 @@ class OrderServiceApplicationTests {
         DELIVERY_DELAY_MILLIS.set(0);
         DELIVERY_STATUS.set(200);
         DELIVERY_RESPONSE_BODY.set("{\"driver\":\"Priya\",\"etaMinutes\":25}");
+
+        NOTIFICATION_STATUS.set(202);
+        LAST_NOTIFICATION_BODY.set(null);
     }
 
     private String url(String path) {
@@ -113,36 +128,56 @@ class OrderServiceApplicationTests {
 
     @Test
     void restaurantsListReturnsTheThreeSeededRestaurants() {
-        ResponseEntity<RestaurantResponse[]> response =
-                rest.getForEntity(url("/api/restaurants"), RestaurantResponse[].class);
+        ResponseEntity<Api.RestaurantResponse[]> response =
+                rest.getForEntity(url("/api/restaurants"), Api.RestaurantResponse[].class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        List<RestaurantResponse> restaurants = List.of(response.getBody());
+        List<Api.RestaurantResponse> restaurants = List.of(response.getBody());
         assertThat(restaurants).hasSize(3);
-        assertThat(restaurants).extracting(RestaurantResponse::name)
+        assertThat(restaurants).extracting(Api.RestaurantResponse::name)
                 .containsExactlyInAnyOrder("Bella Pizza", "Slow Noodles", "Taco Corner");
     }
 
     @Test
-    void menuForRestaurant1Has4ItemsAndUnknownRestaurantGives404() {
-        ResponseEntity<MenuItemResponse[]> okResponse =
-                rest.getForEntity(url("/api/restaurants/1/menu"), MenuItemResponse[].class);
+    void menuForRestaurant1Has8ItemsWithSortedTagsAndUnknownRestaurantGives404() {
+        ResponseEntity<Api.MenuItemResponse[]> okResponse =
+                rest.getForEntity(url("/api/restaurants/1/menu"), Api.MenuItemResponse[].class);
         assertThat(okResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(okResponse.getBody()).hasSize(4);
+        List<Api.MenuItemResponse> items = List.of(okResponse.getBody());
+        assertThat(items).hasSize(8);
+        assertThat(items).allSatisfy(item -> {
+            assertThat(item.tags()).isNotEmpty();
+            assertThat(item.tags()).isSorted();
+        });
 
         ResponseEntity<String> notFound = rest.getForEntity(url("/api/restaurants/999/menu"), String.class);
         assertThat(notFound.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    void happyPathOrderReturns201ConfirmedWithDriverAndCorrectTotal() throws Exception {
-        OrderRequest request = new OrderRequest(1L, List.of(1L, 2L));
+    void loadingMenuForRestaurant1ExecutesAtLeast9PreparedStatements() {
+        SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
+        Statistics statistics = sessionFactory.getStatistics();
+        statistics.clear();
 
-        ResponseEntity<OrderResponse> response =
-                rest.postForEntity(url("/api/orders"), request, OrderResponse.class);
+        ResponseEntity<Api.MenuItemResponse[]> response =
+                rest.getForEntity(url("/api/restaurants/1/menu"), Api.MenuItemResponse[].class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Deliberate N+1: one SELECT for the restaurant items, plus one more per item
+        // (8 items) to lazily read its tags. Lesson 006 fixes this from traces.
+        assertThat(statistics.getPrepareStatementCount()).isGreaterThanOrEqualTo(9);
+    }
+
+    @Test
+    void happyPathOrderReturns201ConfirmedWithDriverAndCorrectTotal() throws Exception {
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), null);
+
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        OrderResponse body = response.getBody();
+        Api.OrderResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.status()).isEqualTo("CONFIRMED");
         assertThat(body.driver()).isEqualTo("Priya");
@@ -160,19 +195,19 @@ class OrderServiceApplicationTests {
     @Test
     void slowKitchenReturns504FailedAndOrderStaysFailed() {
         KITCHEN_DELAY_MILLIS.set(800);
-        OrderRequest request = new OrderRequest(1L, List.of(1L, 2L));
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), null);
 
-        ResponseEntity<OrderResponse> response =
-                rest.postForEntity(url("/api/orders"), request, OrderResponse.class);
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.GATEWAY_TIMEOUT);
-        OrderResponse body = response.getBody();
+        Api.OrderResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.status()).isEqualTo("FAILED");
         assertThat(body.message()).isNotNull();
 
-        ResponseEntity<OrderResponse> lookup =
-                rest.getForEntity(url("/api/orders/" + body.orderId()), OrderResponse.class);
+        ResponseEntity<Api.OrderResponse> lookup =
+                rest.getForEntity(url("/api/orders/" + body.orderId()), Api.OrderResponse.class);
         assertThat(lookup.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(lookup.getBody()).isNotNull();
         assertThat(lookup.getBody().status()).isEqualTo("FAILED");
@@ -180,7 +215,8 @@ class OrderServiceApplicationTests {
 
     @Test
     void itemsFromAnotherRestaurantGive400() {
-        OrderRequest request = new OrderRequest(1L, List.of(1L, 5L));
+        // Item 9 belongs to restaurant 2 (Slow Noodles); restaurant 1 owns items 1-8.
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 9L), null);
 
         ResponseEntity<String> response = rest.postForEntity(url("/api/orders"), request, String.class);
 
@@ -190,11 +226,123 @@ class OrderServiceApplicationTests {
 
     @Test
     void unknownRestaurantOnOrderGives400() {
-        OrderRequest request = new OrderRequest(999L, List.of(1L));
+        Api.OrderRequest request = new Api.OrderRequest(999L, List.of(1L), null);
 
         ResponseEntity<String> response = rest.postForEntity(url("/api/orders"), request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void missingCardNumberIsApproved() {
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), null);
+
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    void cardNotEndingIn0000IsApproved() {
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), "4242 4242 4242 4242");
+
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    void cardEndingIn0000IsDeclinedAndKitchenIsNeverCalled() {
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), "4242424242420000");
+
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED);
+        Api.OrderResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.status()).isEqualTo("DECLINED");
+        assertThat(body.message()).isEqualTo("Payment declined");
+
+        ResponseEntity<Api.OrderResponse> lookup =
+                rest.getForEntity(url("/api/orders/" + body.orderId()), Api.OrderResponse.class);
+        assertThat(lookup.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(lookup.getBody()).isNotNull();
+        assertThat(lookup.getBody().status()).isEqualTo("DECLINED");
+
+        assertThat(LAST_KITCHEN_REQUEST_BODY.get()).isNull();
+    }
+
+    @Test
+    void cardWithSpacesAndDashesEndingIn0000IsDeclined() {
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), "4000-0000-0000-0000");
+
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYMENT_REQUIRED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo("DECLINED");
+    }
+
+    @Test
+    void confirmationIsSentInBackgroundWithoutDelayingTheOrderResponse() throws Exception {
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), null);
+
+        long beforeMs = System.currentTimeMillis();
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
+        long responseMs = System.currentTimeMillis();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        Api.OrderResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        Long orderId = body.orderId();
+        String needle = "\"orderId\":" + orderId;
+
+        String notificationBody = awaitNotificationContaining(needle);
+        long notifiedMs = System.currentTimeMillis();
+
+        assertThat(notificationBody).as("confirmation should reach the delivery stub within 3s").isNotNull();
+        JsonNode notificationJson = mapper.readTree(notificationBody);
+        assertThat(notificationJson.get("orderId").asLong()).isEqualTo(orderId);
+        assertThat(notificationJson.get("message").asText()).contains("confirmed");
+
+        // The confirmation sender sleeps ~150ms before calling the delivery stub, so the
+        // notification must land well after the HTTP response already came back.
+        assertThat(notifiedMs - responseMs).isGreaterThanOrEqualTo(100);
+        assertThat(responseMs - beforeMs).isLessThan(notifiedMs - beforeMs);
+    }
+
+    @Test
+    void confirmationFailureDoesNotAffectTheOrderResponse() {
+        NOTIFICATION_STATUS.set(500);
+        Api.OrderRequest request = new Api.OrderRequest(1L, List.of(1L, 2L), null);
+
+        ResponseEntity<Api.OrderResponse> response =
+                rest.postForEntity(url("/api/orders"), request, Api.OrderResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo("CONFIRMED");
+    }
+
+    private static String awaitNotificationContaining(String needle) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 3000;
+        while (System.currentTimeMillis() < deadline) {
+            String candidate = LAST_NOTIFICATION_BODY.get();
+            if (candidate != null && candidate.contains(needle)) {
+                return candidate;
+            }
+            Thread.sleep(20);
+        }
+        return null;
     }
 
     private static String readBody(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

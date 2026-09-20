@@ -1,4 +1,4 @@
-package com.kaushaldalvi.o11y.orders.domain;
+package com.kaushaldalvi.o11y.orders;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

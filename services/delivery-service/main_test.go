@@ -103,6 +103,34 @@ func TestHandleAssignments_MissingFields(t *testing.T) {
 	}
 }
 
+func TestHandleNotifications_Accepted(t *testing.T) {
+	body := bytes.NewBufferString(`{"orderId":17,"message":"Your order is confirmed."}`)
+	req := httptest.NewRequest(http.MethodPost, "/notifications", body)
+	rec := httptest.NewRecorder()
+	newMux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusAccepted)
+	}
+}
+
+func TestHandleNotifications_BadJSON(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/notifications", bytes.NewBufferString(`not json`))
+	rec := httptest.NewRecorder()
+	newMux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleNotifications_MissingOrderID(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/notifications", bytes.NewBufferString(`{"message":"hi"}`))
+	rec := httptest.NewRecorder()
+	newMux().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
 func TestHealthz(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

@@ -1,4 +1,5 @@
-// Command delivery-service assigns a driver and an ETA for an order.
+// Command delivery-service assigns a driver and an ETA for an order, and sends
+// customer notifications.
 package main
 
 import (
@@ -69,6 +70,28 @@ func handleAssignments(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, resp)
 }
 
+type notificationRequest struct {
+	OrderID int    `json:"orderId"`
+	Message string `json:"message"`
+}
+
+func handleNotifications(w http.ResponseWriter, r *http.Request) {
+	var req notificationRequest
+	if err := httpx.ReadJSON(r, &req); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if req.OrderID == 0 {
+		httpx.WriteError(w, http.StatusBadRequest, "orderId is required")
+		return
+	}
+
+	// Simulate handing the message to an SMS provider.
+	time.Sleep(60 * time.Millisecond)
+	log.Printf("notification sent for order %d", req.OrderID)
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
@@ -81,6 +104,7 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 func newMux() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /assignments", handleAssignments)
+	mux.HandleFunc("POST /notifications", handleNotifications)
 	mux.HandleFunc("GET /healthz", handleHealthz)
 
 	return otelhttp.NewHandler(mux, "",

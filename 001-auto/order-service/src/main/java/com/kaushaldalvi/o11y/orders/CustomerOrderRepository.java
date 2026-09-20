@@ -1,6 +1,5 @@
-package com.kaushaldalvi.o11y.orders.repository;
+package com.kaushaldalvi.o11y.orders;
 
-import com.kaushaldalvi.o11y.orders.domain.CustomerOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Long> {

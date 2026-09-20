@@ -1,6 +1,5 @@
-package com.kaushaldalvi.o11y.orders.repository;
+package com.kaushaldalvi.o11y.orders;
 
-import com.kaushaldalvi.o11y.orders.domain.MenuItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

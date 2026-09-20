@@ -17,9 +17,9 @@ import (
 
 func TestPrepMillis(t *testing.T) {
 	cases := []struct {
-		name                     string
+		name                    string
 		restaurantID, itemCount int
-		want                     int
+		want                    int
 	}{
 		{"slow noodles flat rate", 2, 1, 2500},
 		{"slow noodles ignores item count", 2, 10, 2500},

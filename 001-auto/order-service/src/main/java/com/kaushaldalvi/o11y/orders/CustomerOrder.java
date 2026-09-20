@@ -1,4 +1,4 @@
-package com.kaushaldalvi.o11y.orders.domain;
+package com.kaushaldalvi.o11y.orders;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,6 +13,13 @@ import java.time.Instant;
 @Entity
 @Table(name = "customer_order")
 public class CustomerOrder {
+
+    public enum OrderStatus {
+        RECEIVED,
+        CONFIRMED,
+        DECLINED,
+        FAILED
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,16 +1,5 @@
-package com.kaushaldalvi.o11y.orders.service;
+package com.kaushaldalvi.o11y.orders;
 
-import com.kaushaldalvi.o11y.orders.domain.CustomerOrder;
-import com.kaushaldalvi.o11y.orders.domain.MenuItem;
-import com.kaushaldalvi.o11y.orders.domain.OrderStatus;
-import com.kaushaldalvi.o11y.orders.domain.Restaurant;
-import com.kaushaldalvi.o11y.orders.dto.OrderRequest;
-import com.kaushaldalvi.o11y.orders.dto.OrderResponse;
-import com.kaushaldalvi.o11y.orders.exception.DownstreamFailureException;
-import com.kaushaldalvi.o11y.orders.exception.OrderValidationException;
-import com.kaushaldalvi.o11y.orders.repository.CustomerOrderRepository;
-import com.kaushaldalvi.o11y.orders.repository.MenuItemRepository;
-import com.kaushaldalvi.o11y.orders.repository.RestaurantRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -32,6 +21,8 @@ public class OrderService {
     private final RestaurantRepository restaurantRepository;
     private final MenuItemRepository menuItemRepository;
     private final CustomerOrderRepository orderRepository;
+    private final PaymentService paymentService;
+    private final ConfirmationSender confirmationSender;
     private final RestClient kitchenRestClient;
     private final RestClient deliveryRestClient;
 
@@ -39,24 +30,37 @@ public class OrderService {
             RestaurantRepository restaurantRepository,
             MenuItemRepository menuItemRepository,
             CustomerOrderRepository orderRepository,
+            PaymentService paymentService,
+            ConfirmationSender confirmationSender,
             @Qualifier("kitchenRestClient") RestClient kitchenRestClient,
             @Qualifier("deliveryRestClient") RestClient deliveryRestClient) {
         this.restaurantRepository = restaurantRepository;
         this.menuItemRepository = menuItemRepository;
         this.orderRepository = orderRepository;
+        this.paymentService = paymentService;
+        this.confirmationSender = confirmationSender;
         this.kitchenRestClient = kitchenRestClient;
         this.deliveryRestClient = deliveryRestClient;
     }
 
-    public OrderResponse placeOrder(OrderRequest request) {
+    public Api.OrderResponse placeOrder(Api.OrderRequest request) {
         Restaurant restaurant = validate(request);
 
         List<MenuItem> items = menuItemRepository.findAllById(request.itemIds());
         int totalCents = items.stream().mapToInt(MenuItem::getPriceCents).sum();
 
-        CustomerOrder order = new CustomerOrder(restaurant.getId(), totalCents, OrderStatus.RECEIVED, Instant.now());
+        CustomerOrder order =
+                new CustomerOrder(restaurant.getId(), totalCents, CustomerOrder.OrderStatus.RECEIVED, Instant.now());
         order = orderRepository.save(order);
         log.info("Order {} received for restaurant {}", order.getId(), restaurant.getId());
+
+        boolean approved = paymentService.authorize(request.cardNumber(), totalCents);
+        if (!approved) {
+            order.setStatus(CustomerOrder.OrderStatus.DECLINED);
+            orderRepository.save(order);
+            log.info("Order {} payment declined", order.getId());
+            return Api.OrderResponse.declined(order.getId());
+        }
 
         try {
             TicketResponse ticket = kitchenRestClient.post()
@@ -71,24 +75,26 @@ public class OrderService {
                     .retrieve()
                     .body(AssignmentResponse.class);
 
-            order.setStatus(OrderStatus.CONFIRMED);
+            order.setStatus(CustomerOrder.OrderStatus.CONFIRMED);
             order.setDriver(assignment.driver());
             order.setEtaMinutes(assignment.etaMinutes());
             orderRepository.save(order);
             log.info("Order {} confirmed", order.getId());
 
-            return OrderResponse.confirmed(order.getId(), order.getTotalCents(), order.getDriver(), order.getEtaMinutes());
+            confirmationSender.sendAsync(order.getId(), order.getDriver(), order.getEtaMinutes());
+
+            return Api.OrderResponse.confirmed(order.getId(), order.getTotalCents(), order.getDriver(), order.getEtaMinutes());
         } catch (RestClientException e) {
-            order.setStatus(OrderStatus.FAILED);
+            order.setStatus(CustomerOrder.OrderStatus.FAILED);
             orderRepository.save(order);
             log.error("Order {} failed", order.getId());
-            throw new DownstreamFailureException(order.getId());
+            throw new Exceptions.DownstreamFailureException(order.getId());
         }
     }
 
-    public Optional<OrderResponse> getOrder(Long id) {
+    public Optional<Api.OrderResponse> getOrder(Long id) {
         return orderRepository.findById(id)
-                .map(order -> OrderResponse.of(
+                .map(order -> Api.OrderResponse.of(
                         order.getId(),
                         order.getStatus().name(),
                         order.getTotalCents(),
@@ -96,27 +102,27 @@ public class OrderService {
                         order.getEtaMinutes()));
     }
 
-    private Restaurant validate(OrderRequest request) {
+    private Restaurant validate(Api.OrderRequest request) {
         if (request.restaurantId() == null) {
-            throw new OrderValidationException("restaurantId is required");
+            throw new Exceptions.OrderValidationException("restaurantId is required");
         }
         Restaurant restaurant = restaurantRepository.findById(request.restaurantId())
-                .orElseThrow(() -> new OrderValidationException("Unknown restaurant " + request.restaurantId()));
+                .orElseThrow(() -> new Exceptions.OrderValidationException("Unknown restaurant " + request.restaurantId()));
 
         if (request.itemIds() == null || request.itemIds().isEmpty()) {
-            throw new OrderValidationException("itemIds must not be empty");
+            throw new Exceptions.OrderValidationException("itemIds must not be empty");
         }
 
         List<MenuItem> items = menuItemRepository.findAllById(request.itemIds());
         Set<Long> foundIds = items.stream().map(MenuItem::getId).collect(Collectors.toSet());
         if (!foundIds.containsAll(request.itemIds())) {
-            throw new OrderValidationException("Unknown menu item in order");
+            throw new Exceptions.OrderValidationException("Unknown menu item in order");
         }
 
         boolean allBelongToRestaurant = items.stream()
                 .allMatch(item -> item.getRestaurant().getId().equals(restaurant.getId()));
         if (!allBelongToRestaurant) {
-            throw new OrderValidationException("All items must belong to restaurant " + restaurant.getId());
+            throw new Exceptions.OrderValidationException("All items must belong to restaurant " + restaurant.getId());
         }
 
         return restaurant;
