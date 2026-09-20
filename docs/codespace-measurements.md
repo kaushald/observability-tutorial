@@ -76,3 +76,21 @@ Creation from "Prebuild ready" to a usable terminal: under a minute (hand-timed)
 Port 8080 was forwarded straight away because of `forwardPorts`, and opening it before a
 lesson was running gave a 502 page. `forwardPorts` is now removed; Codespaces forwards the
 port when the order service starts listening.
+
+### 2026-09-20, lesson start, memory and smoke test (prebuilt Codespace, free 2-core machine)
+
+| What | Budget | Measured |
+|---|---|---|
+| Creation with a prebuild | 1 min | under a minute |
+| Creation without a prebuild | 5 min | 2 min 5 s |
+| `000-baseline/run.sh` ready | 20 s | 5 s |
+| `001-auto/run.sh` ready (agent attached) | 20 s | 9 s |
+| Memory, `scripts/measure.sh` | 1 GB | 244 MB total: order service 217, kitchen 13, delivery 12 |
+| `scripts/smoke.sh 001-auto` | PASS | PASS |
+| App through the forwarded 8080 URL | works | works |
+
+The memory figure was taken with the first lesson that was started, most likely the
+untraced baseline. The agent added 50 to 75 MB in `docs/jvm-comparison.md`, so expect
+about 300 MB with tracing on.
+
+All budgets are met. Step 1 of `plan-v2.md` is done.
