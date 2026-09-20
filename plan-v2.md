@@ -168,7 +168,9 @@ Tests come first in each step: JUnit for the order flow, Go tests for the two se
 5. **Dry run and cutover.** Full run-through on a fresh free account with a timer. Move the
    jokes lessons to `legacy/jokes/`, rewrite the root README.
 
-## Assumptions to confirm
+## Decisions
+
+Confirmed on 2026-09-20.
 
 1. The session is about 2 hours, instructor-led, with students following along.
 2. Honeycomb stays as the backend, and students sign up for a free account.
