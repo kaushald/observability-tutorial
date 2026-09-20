@@ -5,3 +5,5 @@ project(':lesson-001').projectDir = file('001-auto/order-service')
 
 include 'lesson-002'
 project(':lesson-002').projectDir = file('002-spans/order-service')
+include 'lesson-003'
+project(':lesson-003').projectDir = file('003-async/order-service')

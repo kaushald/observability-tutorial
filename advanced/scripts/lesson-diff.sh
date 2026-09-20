@@ -15,6 +15,7 @@ TEST="src/test/java/com/kaushaldalvi/o11y/orders"
 allowed_for() {
   case "$1" in
     002-spans) echo "build.gradle $SRC/OrderService.java $SRC/PaymentService.java $TEST/TracingTests.java" ;;
+    003-async) echo "$SRC/ConfirmationSender.java $TEST/TracingTests.java" ;;
     *) echo "" ;;
   esac
 }
