@@ -71,7 +71,8 @@ The 006-cross-service example demonstrates distributed tracing across languages:
 
 A second, more realistic tutorial lives under `advanced/`: a food delivery app with a Java
 order service (Spring Boot 3.5, H2) and two Go services (kitchen, delivery). The plan is
-`advanced/plan-v2.md`; `advanced/docs/v1/` holds the superseded first plan.
+`advanced/plan-v2.md`, the teaching story is `advanced/lesson-plan.md`, and
+`advanced/docs/v1/` holds the superseded first plan.
 
 - One Gradle build for all lessons: `cd advanced && ./gradlew test`
 - Go module: `advanced/services` (`go test ./...`)

@@ -72,6 +72,9 @@ on demand.
 
 ## Lessons
 
+The teaching story for each lesson (the question it asks, what students do, what they take
+away) is in `lesson-plan.md`. This section is the summary.
+
 Each lesson directory holds finished code, like today. Students run it, look at the traces,
 and make one small change. Times add up to 110 minutes.
 
