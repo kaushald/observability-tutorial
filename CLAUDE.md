@@ -70,9 +70,10 @@ The 006-cross-service example demonstrates distributed tracing across languages:
 ## Advanced track (`advanced/`)
 
 A second, more realistic tutorial lives under `advanced/`: a food delivery app with a Java
-order service (Spring Boot 3.5, H2) and two Go services (kitchen, delivery). The plan is
-`advanced/plan-v2.md`, the teaching story is `advanced/lesson-plan.md`, and
-`advanced/docs/v1/` holds the superseded first plan.
+order service (Spring Boot 3.5, H2) and two Go services (kitchen, delivery). Each lesson
+directory holds finished code plus a README that says what changed and what to look for
+in Honeycomb; the diff between consecutive lessons is the lesson
+(`advanced/scripts/lesson-diff.sh`).
 
 - One Gradle build for all lessons: `cd advanced && ./gradlew test`
 - Go module: `advanced/services` (`go test ./...`)
@@ -82,5 +83,6 @@ order service (Spring Boot 3.5, H2) and two Go services (kitchen, delivery). The
   It reads `.env` and `lib/opentelemetry-javaagent.jar` from the repository root.
 - The order service has deliberate problems that later lessons expose (a kitchen timeout,
   an orphaned confirmation thread, an N+1 menu query). Do not fix them in lesson 001.
-- Hard constraint: everything must start quickly on a free 2-core GitHub Codespace.
-  Measurements are in `advanced/docs/codespace-measurements.md`.
+- Hard constraint: everything must start quickly on a free 2-core GitHub Codespace
+  (creation about 2 minutes without a prebuild, under 1 with; lesson start under 10 s;
+  about 300 MB with tracing on).

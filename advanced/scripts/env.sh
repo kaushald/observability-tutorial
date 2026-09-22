@@ -34,6 +34,6 @@ export KITCHEN_PORT="${KITCHEN_PORT:-8081}"
 export DELIVERY_PORT="${DELIVERY_PORT:-8082}"
 
 # Small heap, serial collector, C1 compiler only and smaller thread stacks: the fastest start
-# and lowest memory of the options measured in docs/jvm-comparison.md
+# and lowest memory of the JVM options measured on a 2-core Codespace
 JAVA_OPTS="${JAVA_OPTS:--Xmx256m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k}"
 JAVA_AGENT="$REPO_ROOT/lib/opentelemetry-javaagent.jar"
