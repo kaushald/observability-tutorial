@@ -69,6 +69,14 @@ if [ "$lesson_number" -ge 5 ]; then
   echo "ok: failed order $failed_order refunded once (200, then 409)"
 fi
 
+# Lesson 000 is taught from these log lines, so they must reach the terminal while the
+# lesson is still running, not only when it stops
+sleep 1
+for want in '^\[orders\] .*Order [0-9]* failed' '^\[kitchen\] .*ticket T-[0-9]* accepted' '^\[delivery\] .*notification sent'; do
+  grep -q "$want" "$LOG" || fail "log line matching $want has not reached the terminal while the lesson runs"
+done
+echo "ok: service log lines appear while the lesson runs"
+
 # Stop the lesson so every service flushes its spans
 stop_lesson
 trap - EXIT

@@ -40,10 +40,21 @@ if [ ! -x "$KITCHEN" ] || [ ! -x "$DELIVERY" ] || [ -n "$(find "$ROOT/services" 
 fi
 
 PIDS=()
+
+# Prefixes each line of stdin with the service name. A bash loop, not awk: mawk (the awk
+# on Debian, so in Codespaces) block-buffers input from a pipe, which held every log
+# line back until the service exited.
+prefix() {
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    printf '%s%s\n' "$1" "$line"
+  done
+}
+
 start() {
   local name="$1"
   shift
-  "$@" > >(awk -v p="[$name] " '{ print p $0; fflush() }') 2>&1 &
+  "$@" > >(prefix "[$name] ") 2>&1 &
   PIDS+=($!)
 }
 
